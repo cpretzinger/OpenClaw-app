@@ -16,6 +16,12 @@ final class ConversationViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var showError = false
     
+    // Notification-related state
+    @Published var showNotificationMessage = false
+    @Published var notificationMessageContent: String?
+    private var pendingMessageToSend: String?
+    private var notificationContext: String?
+    
     private let conversationManager = ConversationManager.shared
     private let networkMonitor = NetworkMonitor.shared
     private let keychainManager = KeychainManager.shared
@@ -162,5 +168,52 @@ final class ConversationViewModel: ObservableObject {
     private func showErrorMessage(_ message: String) {
         errorMessage = message
         showError = true
+    }
+    
+    // MARK: - Deep Link / Notification Handling
+    
+    func handleDeepLinkAction(_ action: DeepLinkAction) {
+        switch action {
+        case .startConversation(let context):
+            notificationContext = context
+            Task {
+                await startConversation()
+                // If there's context, we could potentially send it as a first message
+                if let ctx = context, !ctx.isEmpty {
+                    print("[OpenClaw] Started conversation with context: \(ctx)")
+                }
+            }
+            
+        case .showMessage(let message):
+            notificationMessageContent = message
+            showNotificationMessage = true
+            
+        case .sendMessage(let text, let context):
+            notificationContext = context
+            pendingMessageToSend = text
+            Task {
+                // Start conversation first if not connected
+                if !isConnected {
+                    await startConversation()
+                    // Wait a moment for connection to establish
+                    try? await Task.sleep(nanoseconds: 1_000_000_000)
+                }
+                // Send the message
+                if isConnected, let messageText = pendingMessageToSend {
+                    await sendMessage(messageText)
+                    pendingMessageToSend = nil
+                }
+            }
+            
+        case .openSettings:
+            showSettings = true
+        }
+    }
+    
+    /// Clear any pending notification state
+    func clearNotificationState() {
+        notificationMessageContent = nil
+        pendingMessageToSend = nil
+        notificationContext = nil
     }
 }

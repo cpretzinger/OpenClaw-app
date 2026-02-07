@@ -37,6 +37,7 @@ final class KeychainManager {
         case elevenLabsApiKey = "elevenlabs_api_key"
         case agentId = "elevenlabs_agent_id"
         case openClawEndpoint = "openclaw_endpoint"
+        case gatewayHookToken = "gateway_hook_token"
     }
     
     private init() {}
@@ -130,5 +131,13 @@ final class KeychainManager {
     
     func hasOpenClawEndpoint() -> Bool {
         (try? get(.openClawEndpoint)) != nil
+    }
+    
+    func getGatewayHookToken() throws -> String {
+        try get(.gatewayHookToken)
+    }
+    
+    func hasGatewayHookToken() -> Bool {
+        (try? get(.gatewayHookToken)) != nil
     }
 }

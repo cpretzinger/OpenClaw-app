@@ -6,10 +6,13 @@
 //
 
 import SwiftUI
+import UIKit
 
 @main
 struct OpenClawApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var appState = AppState.shared
+    @StateObject private var pushManager = PushNotificationManager.shared
     
     var body: some Scene {
         WindowGroup {
@@ -21,6 +24,21 @@ struct OpenClawApp: App {
                 }
             }
             .environmentObject(appState)
+            .environmentObject(pushManager)
+            .task {
+                // Check notification permission status on launch
+                await pushManager.checkPermissionStatus()
+                appState.updateNotificationPermission(pushManager.permissionStatus)
+            }
+            .onChange(of: pushManager.permissionStatus) { _, newValue in
+                appState.updateNotificationPermission(newValue)
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                // Clear badge when app becomes active
+                Task {
+                    await pushManager.clearBadge()
+                }
+            }
         }
     }
 }

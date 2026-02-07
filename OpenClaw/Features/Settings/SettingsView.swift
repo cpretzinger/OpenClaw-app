@@ -9,6 +9,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @StateObject private var viewModel = SettingsViewModel()
+    @EnvironmentObject private var pushManager: PushNotificationManager
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -26,6 +27,80 @@ struct SettingsView: View {
                                 placeholder: "https://your-funnel.ts.net",
                                 text: $viewModel.openClawEndpoint
                             )
+                            
+                            SettingsSecureField(
+                                label: "Gateway Hook Token",
+                                placeholder: "Optional - for notifications",
+                                text: $viewModel.gatewayHookToken
+                            )
+                        }
+                        
+                        // MARK: - Notifications Section
+                        SettingsSection(title: "Notifications") {
+                            switch pushManager.permissionStatus {
+                            case .notDetermined:
+                                Button {
+                                    Task { await viewModel.requestNotificationPermission() }
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Enable Notifications")
+                                            Text("Get alerts from OpenClaw")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.textSecondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "bell.badge")
+                                            .foregroundStyle(Color.anthropicCoral)
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                                
+                            case .authorized, .provisional:
+                                SettingsRow {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack {
+                                            Text("Notifications")
+                                            Spacer()
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .foregroundStyle(.green)
+                                        }
+                                        if let token = pushManager.deviceToken {
+                                            Text("Token: \(String(token.prefix(8)))...")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.textSecondary)
+                                        }
+                                    }
+                                }
+                                
+                            case .denied:
+                                Button {
+                                    viewModel.openSystemSettings()
+                                } label: {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text("Notifications Disabled")
+                                            Text("Tap to open Settings")
+                                                .font(.caption)
+                                                .foregroundStyle(Color.textSecondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "gear")
+                                            .foregroundStyle(Color.textSecondary)
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                            
+                            if pushManager.permissionStatus == .authorized || pushManager.permissionStatus == .provisional {
+                                SettingsRow {
+                                    Text("Heartbeat Alerts")
+                                    Spacer()
+                                    Toggle("", isOn: $viewModel.notificationsEnabled)
+                                        .labelsHidden()
+                                        .tint(.anthropicCoral)
+                                }
+                            }
                         }
                         
                         // MARK: - ElevenLabs Section

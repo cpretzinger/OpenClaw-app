@@ -159,6 +159,27 @@ struct ConversationView: View {
             } message: {
                 Text(viewModel.errorMessage ?? "An unknown error occurred")
             }
+            .alert("Message from OpenClaw", isPresented: $viewModel.showNotificationMessage) {
+                Button("Start Chat") {
+                    Task { await viewModel.startConversation() }
+                }
+                Button("Dismiss", role: .cancel) {}
+            } message: {
+                Text(viewModel.notificationMessageContent ?? "")
+            }
+            .onChange(of: appState.pendingAction) { _, newAction in
+                if let action = newAction {
+                    viewModel.handleDeepLinkAction(action)
+                    appState.clearPendingAction()
+                }
+            }
+            .onAppear {
+                // Handle any pending action when view appears
+                if let action = appState.pendingAction {
+                    viewModel.handleDeepLinkAction(action)
+                    appState.clearPendingAction()
+                }
+            }
         }
         .preferredColorScheme(.dark)
     }

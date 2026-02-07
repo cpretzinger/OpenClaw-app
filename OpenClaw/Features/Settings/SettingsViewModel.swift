@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UIKit
 
 @MainActor
 final class SettingsViewModel: ObservableObject {
@@ -33,6 +34,14 @@ final class SettingsViewModel: ObservableObject {
         didSet { UserDefaults.standard.set(hapticFeedback, forKey: "hapticFeedback") }
     }
     
+    // Gateway Settings
+    @Published var gatewayHookToken: String = ""
+    
+    // Notification Settings
+    @Published var notificationsEnabled: Bool = false {
+        didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled") }
+    }
+    
     private let keychainManager = KeychainManager.shared
     
     enum ConnectionTestResult {
@@ -52,10 +61,14 @@ final class SettingsViewModel: ObservableObject {
         openClawEndpoint = loadedEndpoint
         isPrivateAgent = !loadedApiKey.isEmpty
         
+        // Load gateway hook token
+        gatewayHookToken = (try? keychain.get(.gatewayHookToken)) ?? ""
+        
         // Load UserDefaults preferences (without triggering didSet)
         _autoStartMic = Published(initialValue: UserDefaults.standard.bool(forKey: "autoStartMic"))
         _showTranscript = Published(initialValue: UserDefaults.standard.object(forKey: "showTranscript") as? Bool ?? true)
         _hapticFeedback = Published(initialValue: UserDefaults.standard.object(forKey: "hapticFeedback") as? Bool ?? true)
+        _notificationsEnabled = Published(initialValue: UserDefaults.standard.bool(forKey: "notificationsEnabled"))
     }
     
     var canSave: Bool {
@@ -88,6 +101,14 @@ final class SettingsViewModel: ObservableObject {
                 try keychainManager.save(trimmedEndpoint, for: .openClawEndpoint)
             } else {
                 try? keychainManager.delete(.openClawEndpoint)
+            }
+            
+            // Save gateway hook token
+            let trimmedHookToken = gatewayHookToken.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmedHookToken.isEmpty {
+                try keychainManager.save(trimmedHookToken, for: .gatewayHookToken)
+            } else {
+                try? keychainManager.delete(.gatewayHookToken)
             }
             
             isSaved = true
@@ -146,10 +167,30 @@ final class SettingsViewModel: ObservableObject {
         try? keychainManager.delete(.agentId)
         try? keychainManager.delete(.elevenLabsApiKey)
         try? keychainManager.delete(.openClawEndpoint)
+        try? keychainManager.delete(.gatewayHookToken)
         agentId = ""
         apiKey = ""
         openClawEndpoint = ""
+        gatewayHookToken = ""
         isPrivateAgent = false
         AppState.shared.checkConfiguration()
+    }
+    
+    // MARK: - Notification Helpers
+    
+    func requestNotificationPermission() async -> Bool {
+        let granted = await PushNotificationManager.shared.requestPermission()
+        if granted {
+            notificationsEnabled = true
+        }
+        return granted
+    }
+    
+    func openSystemSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            Task { @MainActor in
+                UIApplication.shared.open(url)
+            }
+        }
     }
 }

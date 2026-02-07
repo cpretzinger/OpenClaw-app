@@ -1,0 +1,86 @@
+{
+  "id": "ios-push-notifications",
+  "name": "iOS Push Notifications",
+  "description": "Sends push notifications to iOS devices via Apple Push Notification service (APNs)",
+  "version": "1.0.0",
+  "author": "OpenClaw",
+  "schema": {
+    "type": "object",
+    "required": ["apns"],
+    "properties": {
+      "apns": {
+        "type": "object",
+        "description": "APNs configuration",
+        "required": ["keyPath", "keyId", "teamId", "bundleId"],
+        "properties": {
+          "keyPath": {
+            "type": "string",
+            "description": "Path to your APNs authentication key (.p8 file)"
+          },
+          "keyId": {
+            "type": "string",
+            "description": "Key ID from Apple Developer Portal (10 characters)"
+          },
+          "teamId": {
+            "type": "string",
+            "description": "Team ID from Apple Developer Portal (10 characters)"
+          },
+          "bundleId": {
+            "type": "string",
+            "description": "Your iOS app's bundle identifier",
+            "default": "carc.ai.OpenClaw"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "description": "Use APNs sandbox (development) environment",
+            "default": true
+          }
+        }
+      },
+      "notifications": {
+        "type": "object",
+        "description": "Notification behavior settings",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable/disable notifications",
+            "default": true
+          },
+          "onHeartbeat": {
+            "type": "boolean",
+            "description": "Send notifications on heartbeat alerts",
+            "default": true
+          },
+          "onAgentMessage": {
+            "type": "boolean",
+            "description": "Send notifications when agent has important messages",
+            "default": false
+          },
+          "quietHoursStart": {
+            "type": "string",
+            "description": "Start of quiet hours (HH:MM format, e.g., '22:00')"
+          },
+          "quietHoursEnd": {
+            "type": "string",
+            "description": "End of quiet hours (HH:MM format, e.g., '08:00')"
+          }
+        }
+      },
+      "hooks": {
+        "type": "object",
+        "description": "HTTP webhook endpoints configuration",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "Enable HTTP webhook endpoints",
+            "default": true
+          },
+          "authToken": {
+            "type": "string",
+            "description": "Optional Bearer token for webhook authentication"
+          }
+        }
+      }
+    }
+  }
+}
