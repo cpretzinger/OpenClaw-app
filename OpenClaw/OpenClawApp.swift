@@ -1,0 +1,138 @@
+//
+//  OpenClawApp.swift
+//  OpenClaw
+//
+//  Created by Antares Gryczan on 5/2/26.
+//
+
+import SwiftUI
+
+@main
+struct OpenClawApp: App {
+    @StateObject private var appState = AppState.shared
+    
+    var body: some Scene {
+        WindowGroup {
+            Group {
+                if appState.isConfigured {
+                    ConversationView()
+                } else {
+                    OnboardingView()
+                }
+            }
+            .environmentObject(appState)
+        }
+    }
+}
+
+// MARK: - Onboarding View
+
+struct OnboardingView: View {
+    @StateObject private var viewModel = SettingsViewModel()
+    @EnvironmentObject private var appState: AppState
+    
+    var body: some View {
+        NavigationStack {
+            ZStack {
+                Color.backgroundGradient
+                    .ignoresSafeArea()
+                
+                VStack(spacing: 32) {
+                    Spacer()
+                    
+                    // App Icon / Logo
+                    ZStack {
+                        Circle()
+                            .fill(
+                                RadialGradient(
+                                    colors: [.orbCyan, .orbBlue, .orbBlue.opacity(0.3)],
+                                    center: .center,
+                                    startRadius: 10,
+                                    endRadius: 60
+                                )
+                            )
+                            .frame(width: 120, height: 120)
+                            .shadow(color: .orbBlue.opacity(0.5), radius: 20)
+                        
+                        Image(systemName: "waveform.circle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                    }
+                    
+                    VStack(spacing: 8) {
+                        Text("OpenClaw")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                        
+                        Text("Voice Assistant")
+                            .font(.title3)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    // Configuration Form
+                    VStack(spacing: 16) {
+                        Text("Configure Your Agent")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        VStack(spacing: 12) {
+                            TextField("ElevenLabs Agent ID", text: $viewModel.agentId)
+                                .textFieldStyle(.plain)
+                                .padding()
+                                .background(Color.white.opacity(0.1))
+                                .cornerRadius(12)
+                                .foregroundColor(.white)
+                            
+                            Toggle("Private Agent (requires API key)", isOn: $viewModel.isPrivateAgent)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 4)
+                            
+                            if viewModel.isPrivateAgent {
+                                SecureField("ElevenLabs API Key", text: $viewModel.apiKey)
+                                    .textFieldStyle(.plain)
+                                    .padding()
+                                    .background(Color.white.opacity(0.1))
+                                    .cornerRadius(12)
+                                    .foregroundColor(.white)
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        Button {
+                            viewModel.save()
+                        } label: {
+                            Text("Get Started")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(viewModel.canSave ? Color.orbBlue : Color.gray)
+                                )
+                        }
+                        .disabled(!viewModel.canSave)
+                        .padding(.horizontal)
+                    }
+                    .padding(.vertical, 24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(Color.black.opacity(0.3))
+                    )
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                }
+            }
+            .alert("Error", isPresented: $viewModel.showSaveError) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(viewModel.saveError ?? "An unknown error occurred")
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
